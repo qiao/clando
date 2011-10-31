@@ -1,4 +1,4 @@
-clando: clando.lisp run.lisp compile.lisp
+clando: clean clando.lisp run.lisp compile.lisp
 	sbcl --script compile.lisp
 
 .PHONY: clean install
