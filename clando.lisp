@@ -56,7 +56,7 @@
                    :clando))
                task))
            (format-value (value)
-             (format nil "~A," value)))
+             (format nil "~A" value)))
     (let ((attr-values (mapcar #'task-attr 
                                '(id 
                                  created-at 
@@ -64,7 +64,7 @@
                                  project 
                                  priority
                                  description))))
-      (apply #'concatenate 'string (mapcar #'format-value attr-values)))))
+      (format nil "~{~A~^,~}" (mapcar #'format-value attr-values)))))
 
 
 (defun dump-tasks (tasks file-path)
