@@ -1,5 +1,5 @@
 clando: clando.lisp run.lisp compile.lisp
-	sbcl --load compile.lisp
+	sbcl --script compile.lisp
 
 .PHONY: clean install
 
