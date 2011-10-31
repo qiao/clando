@@ -1,5 +1,6 @@
 (in-package #:clando)
 
+(defconstant +tasks-path+ #P"~/.tasks")
 
 (defstruct task
   id           ; hash of description
@@ -36,12 +37,51 @@
     (format nil "~d-~2,'0d-~2,'0d" year month date)))
 
 
-;(defun dump-tasks (task-list file-path)
-  ;(setf (task-list (sort task-list #'string< :key '#task-id)))
-  ;(with-open-file (fstream file-path :direction :output)))
+(defun sort-tasks (tasks)
+  "sort tasks according to id"
+  (sort tasks #'string< :key #'task-id))
+
+
+(defun format-task (task)
+  "format task into csv"
+  (labels ((task-attr (attr)
+             ;; convert from attribute name to corresponding value
+             ;; i.e. (task-attr 'id) -> (task-id task)
+             (funcall 
+               (symbol-function
+                 (intern 
+                   (concatenate 'string
+                                "TASK-"
+                                (symbol-name attr))
+                   :clando))
+               task))
+           (format-value (value)
+             (format nil "~A," value)))
+    (let ((attr-values (mapcar #'task-attr 
+                               '(id 
+                                 created-at 
+                                 due-at 
+                                 project 
+                                 priority
+                                 description))))
+      (apply #'concatenate 'string (mapcar #'format-value attr-values)))))
+
+
+(defun dump-tasks (tasks file-path)
+  "dump tasks to file"
+  (setf tasks (sort-tasks tasks))
+  (with-open-file (fstream file-path 
+                   :direction :output
+                   :if-exists :supersede)
+    (dolist (task tasks)
+      (format fstream "~A~%" (format-task task)))))
 
 
 (defun main (&rest args)
   (pprint args)
-  (pprint (current-timestamp))
-  (pprint (make-task :description "hello, world")))
+  (let ((tasks nil))
+    (push (make-task :description "hello") tasks)
+    (push (make-task :description "world") tasks)
+    (push (make-task :description "foo") tasks)
+    (push (make-task :description "bar") tasks)
+    (dump-tasks tasks +tasks-path+)))
