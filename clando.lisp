@@ -1,6 +1,9 @@
 (in-package #:clando)
 
 
+(defparameter *tasks* nil)
+
+
 (defstruct task
   id           ; hash of description
   description  ; description of this task
@@ -79,42 +82,64 @@
       (destructuring-bind (id created-at due-at project 
                             priority . description)
                           (mapcar #'parse-nil (split #\, csv))
-        (make-task :id id
-                   :created-at created-at
-                   :due-at due-at
-                   :project project
-                   :priority priority
+        (make-task :id          id
+                   :created-at  created-at
+                   :due-at      due-at
+                   :project     project
+                   :priority    priority
                    :description (format nil "~{~A~^,~}" description)))))
 
 
-(defun dump-tasks (tasks file-path)
+(defun dump-tasks ()
   "dump tasks to file"
-  (setf tasks (sort-tasks tasks))
-  (with-open-file (fstream file-path 
+  (setf *tasks* (sort-tasks *tasks*))
+  (with-open-file (fstream *tasks-path*
                    :direction :output
                    :if-exists :supersede)
-    (dolist (task tasks)
+    (dolist (task *tasks*)
       (format fstream "~A~%" (task->csv task)))))
 
 
-(defun load-tasks (file-path)
+(defun load-tasks ()
   "load tasks from file"
   (let ((tasks nil))
-    (with-open-file (fstream file-path
+    (with-open-file (fstream *tasks-path*
                      :direction :input)
       (do ((line (read-line fstream nil)
                  (read-line fstream nil)))
           ((null line))
         (push (csv->task line) tasks)))
-    tasks))
+    (setf *tasks* tasks)))
 
 
-(defun main (&rest args)
-  (pprint args)
-  (let ((tasks nil))
-    (push (new-task :description "hello, world") tasks)
-    (push (new-task :description "world") tasks)
-    (push (new-task :description "foo") tasks)
-    (push (new-task :description "bar") tasks)
-    (dump-tasks tasks *tasks-path*)
-    (print (load-tasks *tasks-path*))))
+(defun cmd-add (&rest args)
+  (if (null args)
+      (error "No descriptions specified")
+      (let* ((description (format nil "~{~A~^ ~}" args))
+             (task (new-task :description description)))
+        (push task *tasks*)
+        (dump-tasks))))
+
+
+(defun cmd-list (&rest args)
+  (flet ((print-task (task)
+           (format t "~A~%" (task-description task))))
+    (mapc #'print-task *tasks*)))
+
+
+(defun dispatch (args &rest binds)
+  (let ((cmd (first args))
+        (arg (rest args)))
+    (dolist (bind binds (cmd-help))
+      (let ((handler (symbol-function (first bind)))
+            (patterns (second bind)))
+        (when (position cmd patterns :test #'string-equal)
+          (apply handler arg)
+          (return))))))
+
+
+(defun main (app-name &rest args)
+  (load-tasks)
+  (dispatch (or args '(""))
+            '(cmd-add  #("add" "adds" "a" "create" "creates" "c"))
+            '(cmd-list #("" "list" "lists" "l" "lst" "show" "shows" "s"))))
