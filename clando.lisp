@@ -36,6 +36,11 @@
     (format nil "~d-~2,'0d-~2,'0d" year month date)))
 
 
+(defun string-join (separator strs)
+  "join a list of strings by separator"
+  (format nil (concatenate 'string "~{~A~^" separator "~}") strs))
+
+
 (defun sort-tasks (tasks)
   "sort tasks according to id"
   (sort tasks #'string< :key #'task-id))
@@ -59,7 +64,7 @@
     (let ((attr-values (mapcar #'task-attr 
                                '(id created-at due-at project 
                                  priority description))))
-      (format nil "~{~A~^,~}" (mapcar #'format-value attr-values)))))
+      (string-join "," (mapcar #'format-value attr-values)))))
 
 
 (defun csv->task (csv)
@@ -87,7 +92,7 @@
                    :due-at      due-at
                    :project     project
                    :priority    priority
-                   :description (format nil "~{~A~^,~}" description)))))
+                   :description (string-join "," description)))))
 
 
 (defun dump-tasks ()
@@ -104,18 +109,20 @@
   "load tasks from file"
   (let ((tasks nil))
     (with-open-file (fstream *tasks-path*
-                     :direction :input)
-      (do ((line (read-line fstream nil)
-                 (read-line fstream nil)))
-          ((null line))
-        (push (csv->task line) tasks)))
+                     :direction :input
+                     :if-does-not-exist nil)
+      (when fstream
+        (do ((line (read-line fstream nil)
+                   (read-line fstream nil)))
+            ((null line))
+          (push (csv->task line) tasks))))
     (setf *tasks* tasks)))
 
 
 (defun cmd-add (&rest args)
   (if (null args)
       (error "No descriptions specified")
-      (let* ((description (format nil "~{~A~^ ~}" args))
+      (let* ((description (string-join " " args))
              (task (new-task :description description)))
         (push task *tasks*)
         (dump-tasks))))
@@ -127,9 +134,15 @@
     (mapc #'print-task *tasks*)))
 
 
+(defun cmd-help (&rest args)
+  (princ "Usage: ")); TODO
+
+
 (defun dispatch (args &rest binds)
-  (let ((cmd (first args))
-        (arg (rest args)))
+  "dispatch command-line arguments to handlers"
+  (let ((app (first args))
+        (cmd (or (second args) ""))
+        (arg (cddr args)))
     (dolist (bind binds (cmd-help))
       (let ((handler (symbol-function (first bind)))
             (patterns (second bind)))
@@ -138,8 +151,9 @@
           (return))))))
 
 
-(defun main (app-name &rest args)
+(defun main (&rest args)
   (load-tasks)
-  (dispatch (or args '(""))
+  (dispatch args
             '(cmd-add  #("add" "adds" "a" "create" "creates" "c"))
-            '(cmd-list #("" "list" "lists" "l" "lst" "show" "shows" "s"))))
+            '(cmd-list #("" "list" "lists" "l" "lst" "show" "shows" "s"))
+            '(cmd-help #("help" "h" "?" "--help" "-h"))))
