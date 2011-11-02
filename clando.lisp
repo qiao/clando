@@ -46,11 +46,28 @@
   (format nil (concatenate 'string "~{~A~^" sep "~}") strs))
 
 
+(defun string-startswith (prefix str)
+  "determine if the string starts with the prefix"
+  (string-equal prefix (subseq str 0 (length prefix))))
+
+
 (defun prefixes (ids)
   "get the mapping from each id to its shortest identifiable prefix"
   (let ((mapping (make-hash-table)))
+    ;; for each id in ids, enumerate the length of its prefix from 0 and 
+    ;; see if it collides with some other ids.
     (dolist (id ids)
-      (do (())))))
+      (do ((len 1 (1+ len)))
+          ((> len 32)) ; md5sum
+        (let ((pre (subseq id 0 len)))
+          ;; `pre' will be the prefix of `id' if every id of 
+          ;; the remaining ids does not start with the `pre'
+          (when (every #'(lambda (id2)
+                         (not (string-startswith pre (subseq id2 0 len))))
+                     (remove id ids :test #'string-equal))
+                (setf (gethash id mapping) pre)
+                (return)))))
+    mapping))
 
 
 ;;; task definition
@@ -106,16 +123,16 @@
              (if (string-equal str "NIL")
                  nil
                  str)))
-      (destructuring-bind (id created-at due-at project 
-                            priority done . description)
-                          (mapcar #'parse-nil (string-split #\, csv))
-        (make-task :id          id
-                   :created-at  created-at
-                   :due-at      due-at
-                   :project     project
-                   :priority    priority
-                   :done        done
-                   :description (string-join "," description)))))
+    (destructuring-bind (id created-at due-at project 
+                         priority done . description)
+                        (mapcar #'parse-nil (string-split #\, csv))
+      (make-task :id          id
+                 :created-at  created-at
+                 :due-at      due-at
+                 :project     project
+                 :priority    priority
+                 :done        done
+                 :description (string-join "," description)))))
 
 
 (defun dump-tasks (tasks filepath)
