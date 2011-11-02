@@ -1,13 +1,6 @@
 (in-package #:clando)
 
 
-;;; global
-
-
-(defparameter *pending-tasks* nil)
-(defparameter *done-tasks*    nil)
-
-
 ;;; utilities
 
 
@@ -160,36 +153,40 @@
 
 
 (defun load-pending-tasks ()
-  (setf *pending-tasks* (load-tasks *pending-tasks-path*)))
+  (load-tasks *pending-tasks-path*))
 
-(defun dump-pending-tasks ()
-  (dump-tasks *pending-tasks* *pending-tasks-path*))
+(defun dump-pending-tasks (tasks)
+  (dump-tasks tasks *pending-tasks-path*))
 
 (defun load-done-tasks ()
-  (setf *done-tasks* (load-tasks *done-tasks-path*)))
+  (load-tasks *done-tasks-path*))
 
-(defun dump-done-tasks ()
-  (dump-tasks *done-tasks* *done-tasks-path*))
+(defun dump-done-tasks (tasks)
+  (dump-tasks tasks *done-tasks-path*))
 
 
 ;;; command-line operations
 
 
 (defun cmd-add (&rest args)
-  (load-pending-tasks)
   (if (null args)
       (error "No descriptions specified")
       (let* ((description (string-join " " args))
-             (task (new-task :description description)))
-        (push task *pending-tasks*)
-        (dump-pending-tasks))))
+             (task (new-task :description description))
+             (pending-tasks (load-pending-tasks)))
+        (push task pending-tasks)
+        (dump-pending-tasks (sort-tasks pending-tasks)))))
 
 
 (defun cmd-list (&rest args)
-  (load-pending-tasks)
-  (flet ((print-task (task)
-           (format t "~A~%" (task-description task))))
-    (mapc #'print-task *pending-tasks*)))
+  (let* ((pending-tasks (load-pending-tasks))
+         (task-ids      (mapcar #'task-id pending-tasks))
+         (pre-map       (prefixes task-ids)))
+    (mapc #'(lambda (task)
+              (let ((pre (gethash (task-id task) pre-map))
+                    (des (task-description task)))
+                (format t "~A - ~A~%" pre des)))
+          pending-tasks)))
 
 
 (defun cmd-help (&rest args)
