@@ -72,8 +72,7 @@
   created-at   ; created date (YYYY-mm-dd)
   due-at       ; due date (YYYY-mm-dd)
   project      ; project this task belongs to (text description)
-  priority     ; priority of this task
-  done)        ; whether this task is done
+  priority)    ; priority of this task
 
 
 (defun new-task (&rest args)
@@ -106,7 +105,7 @@
              (format nil "~A" value)))
     (let ((attr-values (mapcar #'task-attr 
                                '(id created-at due-at project 
-                                 priority done description))))
+                                 priority description))))
       (string-join "," (mapcar #'format-value attr-values)))))
 
 
@@ -117,14 +116,13 @@
                  nil
                  str)))
     (destructuring-bind (id created-at due-at project 
-                         priority done . description)
+                         priority . description)
                         (mapcar #'parse-nil (string-split #\, csv))
       (make-task :id          id
                  :created-at  created-at
                  :due-at      due-at
                  :project     project
                  :priority    priority
-                 :done        done
                  :description (string-join "," description)))))
 
 
@@ -175,7 +173,7 @@
              (task (new-task :description description))
              (pending-tasks (load-pending-tasks)))
         (push task pending-tasks)
-        (dump-pending-tasks (sort-tasks pending-tasks)))))
+        (dump-pending-tasks pending-tasks))))
 
 
 (defun cmd-list (&rest args)
@@ -187,6 +185,31 @@
                     (des (task-description task)))
                 (format t "~A - ~A~%" pre des)))
           pending-tasks)))
+
+
+(defun cmd-finish (&rest args)
+  (let* ((pending-tasks (load-pending-tasks))
+         (task-ids      (mapcar #'task-id pending-tasks)))
+    ;; enumerate the prefixes
+    (dolist (prefix args)
+      ;; filter ids with the prefix
+      (let* ((ids-with-prefix (remove-if-not #'(lambda (id)
+                                                 (string-startswith prefix id))
+                                             task-ids))
+             (ids-count (length ids-with-prefix)))
+        (cond ((> ids-count 1)
+               (format t "Error: Ambiguous prefix ~A~%" prefix)
+               (return))
+              ((= ids-count 1)
+               (let* ((id (first ids-with-prefix))
+                      (task (find-if #'(lambda (tsk) 
+                                         (string-equal (task-id tsk) id))
+                                     pending-tasks)))
+                 (dump-pending-tasks (remove task pending-tasks))
+                 (dump-done-tasks (cons task (load-done-tasks)))))
+              (t 
+               (format t "Error: Unknown prefix ~A~%" prefix)
+               (return)))))))
 
 
 (defun cmd-help (&rest args)
@@ -209,6 +232,7 @@
 
 (defun main (&rest args)
   (dispatch args
-            '(cmd-add  #("add" "adds" "a" "create" "creates" "c"))
-            '(cmd-list #("" "list" "lists" "l" "lst" "show" "shows" "s"))
-            '(cmd-help #("help" "h" "?" "--help" "-h"))))
+            '(cmd-add    #("add" "adds" "a" "create" "creates" "c"))
+            '(cmd-list   #("" "list" "lists" "l" "lst" "show" "shows" "s"))
+            '(cmd-help   #("help" "h" "?" "--help" "-h"))
+            '(cmd-finish #("finish" "fin" "f" "done"))))
