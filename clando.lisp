@@ -1,24 +1,15 @@
 (in-package #:clando)
 
 
-(defparameter *tasks* nil)
+;;; global
 
 
-(defstruct task
-  id           ; hash of description
-  description  ; description of this task
-  created-at   ; created date (YYYY-mm-dd)
-  due-at       ; due date (YYYY-mm-dd)
-  project      ; project this task belongs to (text description)
-  priority)    ; priority of this task
+(defparameter *pending-tasks* nil)
+(defparameter *done-tasks*    nil)
 
 
-(defun new-task (&rest args)
-  "make a new task with `id' and `created-at' auto-generated"
-  (let ((task (apply #'make-task args)))
-    (setf (task-id task) (hash (task-description task)))
-    (setf (task-created-at task) (current-timestamp))
-    task))
+;;; utilities
+
 
 (defun hash (str)
   "get the hash for a string"
@@ -36,9 +27,51 @@
     (format nil "~d-~2,'0d-~2,'0d" year month date)))
 
 
-(defun string-join (separator strs)
+(defun string-split (sep str)
+  "split a string by separator into a list of substrings"
+  (let ((acc nil))
+    (labels ((recur (str)
+               (let ((pos (position sep str)))
+                 (if pos
+                     (progn
+                       (push (subseq str 0 pos) acc)
+                       (recur (subseq str (1+ pos))))
+                     (push str acc)))))
+      (recur str))
+    (nreverse acc)))
+
+
+(defun string-join (sep strs)
   "join a list of strings by separator"
-  (format nil (concatenate 'string "~{~A~^" separator "~}") strs))
+  (format nil (concatenate 'string "~{~A~^" sep "~}") strs))
+
+
+(defun prefixes (ids)
+  "get the mapping from each id to its shortest identifiable prefix"
+  (let ((mapping (make-hash-table)))
+    (dolist (id ids)
+      (do (())))))
+
+
+;;; task definition
+
+
+(defstruct task
+  id           ; hash of description
+  description  ; description of this task
+  created-at   ; created date (YYYY-mm-dd)
+  due-at       ; due date (YYYY-mm-dd)
+  project      ; project this task belongs to (text description)
+  priority     ; priority of this task
+  done)        ; whether this task is done
+
+
+(defun new-task (&rest args)
+  "make a new task with `id' and `created-at' auto-generated"
+  (let ((task (apply #'make-task args)))
+    (setf (task-id task) (hash (task-description task)))
+    (setf (task-created-at task) (current-timestamp))
+    task))
 
 
 (defun sort-tasks (tasks)
@@ -63,52 +96,42 @@
              (format nil "~A" value)))
     (let ((attr-values (mapcar #'task-attr 
                                '(id created-at due-at project 
-                                 priority description))))
+                                 priority done description))))
       (string-join "," (mapcar #'format-value attr-values)))))
 
 
 (defun csv->task (csv)
   "load task from csv"
-  (labels ((split (sep str)
-             (let ((acc nil))
-               (labels ((recur (str)
-                          (let ((pos (position sep str)))
-                            (if pos
-                                (progn
-                                  (push (subseq str 0 pos) acc)
-                                  (recur (subseq str (1+ pos))))
-                                (push str acc)))))
-                 (recur str))
-               (nreverse acc)))
-           (parse-nil (str)
+  (labels ((parse-nil (str)
              (if (string-equal str "NIL")
                  nil
                  str)))
       (destructuring-bind (id created-at due-at project 
-                            priority . description)
-                          (mapcar #'parse-nil (split #\, csv))
+                            priority done . description)
+                          (mapcar #'parse-nil (string-split #\, csv))
         (make-task :id          id
                    :created-at  created-at
                    :due-at      due-at
                    :project     project
                    :priority    priority
+                   :done        done
                    :description (string-join "," description)))))
 
 
-(defun dump-tasks ()
+(defun dump-tasks (tasks filepath)
   "dump tasks to file"
-  (setf *tasks* (sort-tasks *tasks*))
-  (with-open-file (fstream *tasks-path*
+  (setf tasks (sort-tasks tasks))
+  (with-open-file (fstream filepath
                    :direction :output
                    :if-exists :supersede)
-    (dolist (task *tasks*)
+    (dolist (task tasks)
       (format fstream "~A~%" (task->csv task)))))
 
 
-(defun load-tasks ()
+(defun load-tasks (filepath)
   "load tasks from file"
   (let ((tasks nil))
-    (with-open-file (fstream *tasks-path*
+    (with-open-file (fstream filepath
                      :direction :input
                      :if-does-not-exist nil)
       (when fstream
@@ -116,26 +139,44 @@
                    (read-line fstream nil)))
             ((null line))
           (push (csv->task line) tasks))))
-    (setf *tasks* tasks)))
+    tasks))
+
+
+(defun load-pending-tasks ()
+  (setf *pending-tasks* (load-tasks *pending-tasks-path*)))
+
+(defun dump-pending-tasks ()
+  (dump-tasks *pending-tasks* *pending-tasks-path*))
+
+(defun load-done-tasks ()
+  (setf *done-tasks* (load-tasks *done-tasks-path*)))
+
+(defun dump-done-tasks ()
+  (dump-tasks *done-tasks* *done-tasks-path*))
+
+
+;;; command-line operations
 
 
 (defun cmd-add (&rest args)
+  (load-pending-tasks)
   (if (null args)
       (error "No descriptions specified")
       (let* ((description (string-join " " args))
              (task (new-task :description description)))
-        (push task *tasks*)
-        (dump-tasks))))
+        (push task *pending-tasks*)
+        (dump-pending-tasks))))
 
 
 (defun cmd-list (&rest args)
+  (load-pending-tasks)
   (flet ((print-task (task)
            (format t "~A~%" (task-description task))))
-    (mapc #'print-task *tasks*)))
+    (mapc #'print-task *pending-tasks*)))
 
 
 (defun cmd-help (&rest args)
-  (princ "Usage: ")); TODO
+  (format t "Usage: ~%")); TODO
 
 
 (defun dispatch (args &rest binds)
@@ -151,8 +192,8 @@
           (return))))))
 
 
+
 (defun main (&rest args)
-  (load-tasks)
   (dispatch args
             '(cmd-add  #("add" "adds" "a" "create" "creates" "c"))
             '(cmd-list #("" "list" "lists" "l" "lst" "show" "shows" "s"))

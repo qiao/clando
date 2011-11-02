@@ -1,3 +1,4 @@
 (in-package #:clando)
 
-(defparameter *tasks-path* #P"~/.tasks")
+(defparameter *pending-tasks-path* #P"~/.tasks.pending")
+(defparameter *done-tasks-path*    #P"~/.tasks.done")
