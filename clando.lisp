@@ -213,7 +213,14 @@
 
 
 (defun cmd-help (&rest args)
-  (format t "Usage: ~%")); TODO
+  (let ((help-text "usage: clando <command> [<args>]
+
+available commands:
+    add      <description>  Add a task with description
+    list                    List all pending tasks with their ids
+    finish   <id>           Mark the task of the giving id as finished
+    help                    Show this message ~%"))
+    (format t help-text)))
 
 
 (defun dispatch (args &rest binds)
