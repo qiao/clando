@@ -149,6 +149,11 @@
           (push (csv->task line) tasks))))
     tasks))
 
+(defun find-tasks-by-prefix (prefix tasks)
+  (remove-if-not #'(lambda (task)
+                     (string-startswith prefix (task-id task)))
+                 tasks))
+
 
 (defun load-pending-tasks ()
   (load-tasks *pending-tasks-path*))
@@ -188,23 +193,17 @@
 
 
 (defun cmd-finish (&rest args)
-  (let* ((pending-tasks (load-pending-tasks))
-         (task-ids      (mapcar #'task-id pending-tasks)))
+  (let ((pending-tasks (load-pending-tasks)))
     ;; enumerate the prefixes
     (dolist (prefix args)
-      ;; filter ids with the prefix
-      (let* ((ids-with-prefix (remove-if-not #'(lambda (id)
-                                                 (string-startswith prefix id))
-                                             task-ids))
-             (ids-count (length ids-with-prefix)))
-        (cond ((> ids-count 1)
+      ;; filter tasks with the prefix
+      (let* ((tasks-with-prefix (find-tasks-by-prefix prefix pending-tasks))
+             (task-count (length tasks-with-prefix)))
+        (cond ((> task-count 1)
                (format t "Error: Ambiguous prefix ~A~%" prefix)
                (return))
-              ((= ids-count 1)
-               (let* ((id (first ids-with-prefix))
-                      (task (find-if #'(lambda (tsk) 
-                                         (string-equal (task-id tsk) id))
-                                     pending-tasks)))
+              ((= task-count 1)
+               (let ((task (first tasks-with-prefix)))
                  (dump-pending-tasks (remove task pending-tasks))
                  (dump-done-tasks (cons task (load-done-tasks)))))
               (t 
