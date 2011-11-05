@@ -9,8 +9,10 @@
   :author "Xueqiao Xu <xueqiaoxu@gmail.com>"
   :version "0.1"
   :license "MIT"
-  :serial t
   :depends-on (#:sb-md5)
-  :components ((:file "package") 
-               (:file "settings")
-               (:file "clando")))
+  :components ((:module "src"
+                :components ((:file "package") 
+                             (:file "settings" 
+                              :depends-on ("package"))
+                             (:file "clando" 
+                              :depends-on ("package" "settings"))))))

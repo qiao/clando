@@ -1,4 +1,4 @@
 Clando
 ======
 
-A minimal command-line todo list manager.(Not finished yet)
+A command-line todo list manager for minimalists. (Not finished yet)

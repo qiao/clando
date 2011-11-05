@@ -5,4 +5,3 @@
 
 (defun main ()
   (apply #'clando:main sb-ext:*posix-argv*))
-

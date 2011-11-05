@@ -1,3 +1,5 @@
+VPATH = src
+
 clando: clean clando.lisp run.lisp compile.lisp settings.lisp
 	sbcl --script compile.lisp
 
