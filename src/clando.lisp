@@ -97,7 +97,7 @@
 
 (defun sort-tasks (tasks)
   "sort tasks according to id"
-  (sort tasks #'string< :key #'task-id))
+  (sort tasks #'string< :key #'task-created-at))
 
 
 (defun task->csv (task)
@@ -201,7 +201,7 @@
               (let ((pre (gethash (task-id task) pre-map))
                     (des (task-description task)))
                 (format t "~A - ~A~%" pre des)))
-          pending-tasks)))
+          (sort-tasks pending-tasks))))
 
 
 (defun cmd-finish (&rest args)
