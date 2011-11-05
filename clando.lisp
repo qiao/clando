@@ -13,11 +13,10 @@
 
 (defun current-timestamp ()
   "get the current timestamp, in format YYYY-mm-dd"
-  (let* ((time-struct (multiple-value-list (get-decoded-time)))
-         (date  (fourth time-struct))
-         (month (fifth time-struct))
-         (year  (sixth time-struct)))
-    (format nil "~d-~2,'0d-~2,'0d" year month date)))
+  (multiple-value-bind (sec minute hour date month year)
+                       (get-decoded-time)
+    (format nil "~d-~2,'0d-~2,'0d-~2,'0d:~2,'0d:~-2,'0d" 
+                year month date   hour   minute sec)))
 
 
 (defun string-split (sep str)
@@ -75,12 +74,25 @@
   priority)    ; priority of this task
 
 
+(defun task-hash (task)
+  (hash (concatenate 'string
+                     (task-created-at task)
+                     (task-description task))))
+
+
 (defun new-task (&rest args)
   "make a new task with `id' and `created-at' auto-generated"
   (let ((task (apply #'make-task args)))
-    (setf (task-id task) (hash (task-description task)))
     (setf (task-created-at task) (current-timestamp))
+    (setf (task-id task) (task-hash task))
     task))
+
+
+(defun edit-task-description (description task)
+  (let ((new-task (copy-task task)))
+    (setf (task-description new-task) description)
+    (setf (task-id task) (task-hash new-task))
+    new-task))
 
 
 (defun sort-tasks (tasks)
@@ -168,7 +180,7 @@
   (dump-tasks tasks *done-tasks-path*))
 
 
-;;; command-line operations
+;;; commands
 
 
 (defun cmd-add (&rest args)
@@ -211,14 +223,51 @@
                (return)))))))
 
 
+(defun cmd-remove (&rest args)
+  (let ((pending-tasks (load-pending-tasks)))
+    (dolist (prefix args)
+      (let* ((tasks-with-prefix (find-tasks-by-prefix prefix pending-tasks))
+             (task-count (length tasks-with-prefix)))
+        (cond ((> task-count 1)
+               (format t "Error: Ambiguous prefix ~A~%" prefix)
+               (return))
+              ((= task-count 1)
+               (let ((task (first tasks-with-prefix)))
+                 (dump-pending-tasks (remove task pending-tasks))))
+              (t
+               (format t "Error: Unknown prefix ~A~%" prefix)
+               (return)))))))
+
+
+(defun cmd-edit (&rest args)
+  (if (< (length args) 2)
+      (cmd-help)
+      (let ((prefix        (first args))
+            (description   (string-join " " (rest args)))
+            (pending-tasks (load-pending-tasks)))
+        (let* ((tasks-with-prefix (find-tasks-by-prefix prefix pending-tasks))
+               (task-count (length tasks-with-prefix)))
+          (cond ((> task-count 1)
+                 (format t "Error: Ambiguous prefix ~A~%" prefix))
+                ((= task-count 1)
+                 (let* ((task (first tasks-with-prefix))
+                        (rest-tasks (remove task pending-tasks))
+                        (new-task (edit-task-description description task)))
+                   (dump-pending-tasks (cons new-task rest-tasks))))
+                (t
+                 (format t "Error: Unknown prefix ~A~%" prefix)))))))
+
+
 (defun cmd-help (&rest args)
   (let ((help-text "usage: clando <command> [<args>]
 
 available commands:
-    add      <description>  Add a task with description
-    list                    List all pending tasks with their ids
-    finish   <id>           Mark the task of the giving id as finished
-    help                    Show this message ~%"))
+    add     <description>       Add a task with description
+    list                        List all pending tasks with their ids
+    finish  <id>                Mark the task of the giving id as finished
+    edit    <id> <description>  Edit the description of a task
+    remove  <id>                Remove the task of the given id
+    help                        Show this message ~%"))
     (format t help-text)))
 
 
@@ -241,4 +290,6 @@ available commands:
             '(cmd-add    #("add" "adds" "a" "create" "creates" "c"))
             '(cmd-list   #("" "list" "lists" "l" "lst" "show" "shows" "s"))
             '(cmd-help   #("help" "h" "?" "--help" "-h"))
-            '(cmd-finish #("finish" "fin" "f" "done"))))
+            '(cmd-finish #("finish" "fin" "f" "done"))
+            '(cmd-remove #("remove" "rm" "rem" "delete" "d" "del"))
+            '(cmd-edit   #("edit" "e" "change" "mod" "modify"))))
