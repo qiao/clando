@@ -91,7 +91,7 @@
 (defun edit-task-description (description task)
   (let ((new-task (copy-task task)))
     (setf (task-description new-task) description)
-    (setf (task-id task) (task-hash new-task))
+    (setf (task-id new-task) (task-hash new-task))
     new-task))
 
 
