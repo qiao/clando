@@ -3,15 +3,9 @@ Clando
 
 ## Introduction
 
-Clando is a command-line todo list manager for minimalists. Its main idea is based on [t](http://stevelosh.com/projects/t/), which aims to maximize efficiency by making things simple.
+Clando is a command-line todo list manager for minimalists. 
 
-
-## Installation
-
-    git clone t@github.com:qiao/clando.git
-    cd clando
-    make
-    sudo make install
+Its main idea is based on [t](http://stevelosh.com/projects/t/), which aims to maximize efficiency by making things simple.
 
 
 ## Basic Usage
@@ -57,3 +51,22 @@ Clando conforms to the UNIX philosophy. There are no redundant outputs, and ther
 
     $ clando | grep -i "book" | wc -l  # count the number of all tasks having "book" in their descriptions
 
+
+## Installation
+
+Clando is written in Common Lisp and depends on `SBCL`. You may install `SBCL` from your Linux distribution's sofware repository.
+
+For Ubuntu users:
+
+    sudo apt-get install sbcl
+    
+For ArchLinux users:
+
+    sudo pacman -S sbcl
+
+Then,
+
+    git clone t@github.com:qiao/clando.git
+    cd clando
+    make
+    sudo make install
