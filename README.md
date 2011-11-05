@@ -45,7 +45,7 @@ Feeling tedious to input the long `clando` in the terminal each time? Just choos
 
     alias c='clando'
 
-Remember to execute `. .bashrc` or restart your terminal for it to take effect.
+Remember to execute `. ~/.bashrc` or restart your terminal for it to take effect.
 
 Clando conforms to the UNIX philosophy. There are no redundant outputs, and therefore you may use tools such as `grep` and `wc` to filter or count tasks.
 
@@ -54,7 +54,7 @@ Clando conforms to the UNIX philosophy. There are no redundant outputs, and ther
 
 ## Installation
 
-Clando is written in Common Lisp and depends on `SBCL`. You may install `SBCL` from your Linux distribution's sofware repository.
+Clando is written in Common Lisp and depends on `sbcl`. You may install `sbcl` from your Linux distribution's sofware repository.
 
 For Ubuntu users:
 
@@ -66,7 +66,7 @@ For ArchLinux users:
 
 Then,
 
-    git clone t@github.com:qiao/clando.git
+    git clone git@github.com:qiao/clando.git
     cd clando
     make
     sudo make install
