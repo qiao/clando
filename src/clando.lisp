@@ -286,7 +286,6 @@ available commands:
 
 
 (defun main (&rest args)
-  (print 123)
   (dispatch args
             '(cmd-add    #("add" "adds" "a" "create" "creates" "c"))
             '(cmd-list   #("" "list" "lists" "l" "lst" "show" "shows" "s"))
