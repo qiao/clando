@@ -5,14 +5,14 @@
 
 
 (defun hash (str)
-  "get the hash for a string"
+  "get the hash of a string"
   (flet ((byte-array->hex-string (byte-array)
            (format nil "~(~{~2,'0X~}~)" (coerce byte-array 'list))))
     (byte-array->hex-string (sb-md5:md5sum-string str))))
 
 
 (defun current-timestamp ()
-  "get the current timestamp, in format YYYY-mm-dd"
+  "get the current timestamp, in format YYYY-mm-dd-HH:MM:SS"
   (multiple-value-bind (sec minute hour date month year)
                        (get-decoded-time)
     (format nil "~d-~2,'0d-~2,'0d-~2,'0d:~2,'0d:~-2,'0d" 
@@ -52,8 +52,8 @@
       (do ((len 1 (1+ len)))
           ((> len 32)) ; md5sum
         (let ((pre (subseq id 0 len)))
-          ;; `pre' will be the prefix of `id' if every id of 
-          ;; the remaining ids does not start with the `pre'
+          ;; `pre' will be the prefix of `id' if every remaining id 
+          ;; does not start with `pre'
           (when (every #'(lambda (id2)
                          (not (string-startswith pre (subseq id2 0 len))))
                      (remove id ids :test #'string-equal))
@@ -75,6 +75,7 @@
 
 
 (defun task-hash (task)
+  "get the hash of a task"
   (hash (concatenate 'string
                      (task-created-at task)
                      (task-description task))))
@@ -89,9 +90,9 @@
 
 
 (defun edit-task-description (description task)
+  "return a new task with description changed"
   (let ((new-task (copy-task task)))
     (setf (task-description new-task) description)
-    (setf (task-id new-task) (task-hash new-task))
     new-task))
 
 
@@ -200,7 +201,7 @@
     (mapc #'(lambda (task)
               (let ((pre (gethash (task-id task) pre-map))
                     (des (task-description task)))
-                (format t "~A - ~A~%" pre des)))
+                (format t "~A - ~A~%" pre des))) ; TODO: align
           (sort-tasks pending-tasks))))
 
 
