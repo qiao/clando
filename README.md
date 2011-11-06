@@ -26,13 +26,10 @@ To list your pending tasks, simply type in `clando`
 To mark a pending task as finished, use `clando finish <id>`
 
     $ clando finish 6
-    $ clando
-    8 - Implement a LISP interpreter
 
 To edit the description of a task, use `clando edit <id> <description>`
 
     $ clando edit 8 Implement a LISP interpreter in Javascript
-    2 - Implement a LISP interpreter in Javascript
 
 To remove a task, use `clando remove <id>`
 
