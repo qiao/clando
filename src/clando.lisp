@@ -195,14 +195,20 @@
 
 
 (defun cmd-list (&rest args)
-  (let* ((pending-tasks (load-pending-tasks))
-         (task-ids      (mapcar #'task-id pending-tasks))
-         (pre-map       (prefixes task-ids)))
-    (mapc #'(lambda (task)
-              (let ((pre (gethash (task-id task) pre-map))
-                    (des (task-description task)))
-                (format t "~A - ~A~%" pre des))) ; TODO: align
-          (sort-tasks pending-tasks))))
+  (labels ((num-length (num)
+             (length (princ-to-string num))))
+    (let* ((pending-tasks (load-pending-tasks))
+           (task-ids      (mapcar #'task-id pending-tasks))
+           (pre-map       (prefixes task-ids))
+           (max-id-length (apply #'max (mapcar #'(lambda (id)
+                                                   (num-length 
+                                                     (gethash id pre-map)))
+                                               task-ids))))
+      (mapc #'(lambda (task)
+                (let ((pre (gethash (task-id task) pre-map))
+                      (des (task-description task)))
+                  (format t "~VA - ~A~%" max-id-length pre des)))
+            (sort-tasks pending-tasks)))))
 
 
 (defun cmd-finish (&rest args)
