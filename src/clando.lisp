@@ -15,7 +15,7 @@
   "get the current timestamp, in format YYYY-mm-dd-HH:MM:SS"
   (multiple-value-bind (sec minute hour date month year)
                        (get-decoded-time)
-    (format nil "~d-~2,'0d-~2,'0d-~2,'0d:~2,'0d:~-2,'0d" 
+    (format nil "~d-~2,'0d-~2,'0d-~2,'0d:~2,'0d:~2,'0d" 
                 year month date   hour   minute sec)))
 
 
@@ -102,6 +102,7 @@
 
 
 (defun sort-list-tasks (tasks)
+  "sort tasks according to created date"
   (sort tasks #'string< :key #'task-created-at))
 
 
