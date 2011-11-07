@@ -18,8 +18,8 @@ To add a task, use `clando add <description>`
 To list your pending tasks, simply type in `clando`
 
     $ clando
-    6 - Finish coursework of AI class
-    8 - Implement a LISP interpreter
+    6  Finish coursework of AI class
+    8  Implement a LISP interpreter
 
 (The numbers at the front are the IDs of each task. )
 
@@ -33,7 +33,7 @@ To edit the description of a task, use `clando edit <id> <description>`
 
 To remove a task, use `clando remove <id>`
 
-    $ clando remove 2
+    $ clando remove 8
 
 
 ## Advanced Usage
