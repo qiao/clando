@@ -184,6 +184,24 @@
 ;;; commands
 
 
+(defmacro with-find-tasks ((task tasks) prefixes &body body)
+  (let ((prefix (gensym))
+        (tasks-with-prefix (gensym))
+        (task-count (gensym)))
+    `(dolist (,prefix ,prefixes)
+       (let* ((,tasks-with-prefix (find-tasks-by-prefix ,prefix ,tasks))
+              (,task-count (length ,tasks-with-prefix)))
+         (cond ((> ,task-count 1)
+                (format t "Error: Ambiguous prefix ~A~%" ,prefix)
+                (return))
+               ((= ,task-count 1)
+                (let ((,task (first ,tasks-with-prefix)))
+                  ,@body))
+               (t
+                (format t "Error: Unknown prefix ~A~%" ,prefix)
+                (return)))))))
+
+
 (defun cmd-add (&rest args)
   (if (null args)
       (error "No descriptions specified")
@@ -211,39 +229,17 @@
             (sort-tasks pending-tasks)))))
 
 
-(defun cmd-finish (&rest args)
-  (let ((pending-tasks (load-pending-tasks)))
-    ;; enumerate the prefixes
-    (dolist (prefix args)
-      ;; filter tasks with the prefix
-      (let* ((tasks-with-prefix (find-tasks-by-prefix prefix pending-tasks))
-             (task-count (length tasks-with-prefix)))
-        (cond ((> task-count 1)
-               (format t "Error: Ambiguous prefix ~A~%" prefix)
-               (return))
-              ((= task-count 1)
-               (let ((task (first tasks-with-prefix)))
-                 (dump-pending-tasks (remove task pending-tasks))
-                 (dump-done-tasks (cons task (load-done-tasks)))))
-              (t 
-               (format t "Error: Unknown prefix ~A~%" prefix)
-               (return)))))))
+(defun cmd-finish (&rest prefixes)
+  (let ((pending-tasks (load-pending-tasks))) 
+    (with-find-tasks (task pending-tasks) prefixes
+      (dump-pending-tasks (remove task pending-tasks))
+      (dump-done-tasks (cons task (load-done-tasks))))))
 
 
-(defun cmd-remove (&rest args)
+(defun cmd-remove (&rest prefixes)
   (let ((pending-tasks (load-pending-tasks)))
-    (dolist (prefix args)
-      (let* ((tasks-with-prefix (find-tasks-by-prefix prefix pending-tasks))
-             (task-count (length tasks-with-prefix)))
-        (cond ((> task-count 1)
-               (format t "Error: Ambiguous prefix ~A~%" prefix)
-               (return))
-              ((= task-count 1)
-               (let ((task (first tasks-with-prefix)))
-                 (dump-pending-tasks (remove task pending-tasks))))
-              (t
-               (format t "Error: Unknown prefix ~A~%" prefix)
-               (return)))))))
+    (with-find-tasks (task pending-tasks) prefixes
+      (dump-pending-tasks (remove task pending-tasks)))))
 
 
 (defun cmd-edit (&rest args)
@@ -252,18 +248,11 @@
       (let ((prefix        (first args))
             (description   (string-join " " (rest args)))
             (pending-tasks (load-pending-tasks)))
-        (let* ((tasks-with-prefix (find-tasks-by-prefix prefix pending-tasks))
-               (task-count (length tasks-with-prefix)))
-          (cond ((> task-count 1)
-                 (format t "Error: Ambiguous prefix ~A~%" prefix))
-                ((= task-count 1)
-                 (let* ((task (first tasks-with-prefix))
-                        (rest-tasks (remove task pending-tasks))
-                        (new-task (edit-task-description description task)))
-                   (dump-pending-tasks (cons new-task rest-tasks))))
-                (t
-                 (format t "Error: Unknown prefix ~A~%" prefix)))))))
-
+        (with-find-tasks (task pending-tasks) (list prefix)
+          (let ((rest-tasks (remove task pending-tasks))
+                (new-task (edit-task-description description task)))
+            (dump-pending-tasks (cons new-task rest-tasks)))))))
+  
 
 (defun cmd-help (&rest args)
   (let ((help-text "usage: clando <command> [<args>]
