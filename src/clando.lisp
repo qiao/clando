@@ -96,8 +96,12 @@
     new-task))
 
 
-(defun sort-tasks (tasks)
+(defun sort-dump-tasks (tasks)
   "sort tasks according to id"
+  (sort tasks #'string< :key #'task-id))
+
+
+(defun sort-list-tasks (tasks)
   (sort tasks #'string< :key #'task-created-at))
 
 
@@ -141,7 +145,7 @@
 
 (defun dump-tasks (tasks filepath)
   "dump tasks to file"
-  (setf tasks (sort-tasks tasks))
+  (setf tasks (sort-dump-tasks tasks))
   (with-open-file (fstream filepath
                    :direction :output
                    :if-exists :supersede)
@@ -225,8 +229,8 @@
       (mapc #'(lambda (task)
                 (let ((pre (gethash (task-id task) pre-map))
                       (des (task-description task)))
-                  (format t "~VA - ~A~%" max-id-length pre des)))
-            (sort-tasks pending-tasks)))))
+                  (format t "~VA  ~A~%" max-id-length pre des)))
+            (sort-list-tasks pending-tasks)))))
 
 
 (defun cmd-finish (&rest prefixes)
@@ -278,7 +282,6 @@ available commands:
         (when (position cmd patterns :test #'string-equal)
           (apply handler arg)
           (return))))))
-
 
 
 (defun main (&rest args)
